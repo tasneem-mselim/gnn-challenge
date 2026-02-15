@@ -80,7 +80,7 @@ function parseCSV(text) {
 
 function formatMetric(value) {
   const num = Number(value);
-  return Number.isFinite(num) ? num.toFixed(4) : '-';
+  return Number.isFinite(num) ? num.toFixed(2) : '-';
 }
 
 function normalizeType(type) {
@@ -140,7 +140,7 @@ function updateStats(allRows, visibleRows) {
   }, Number.NEGATIVE_INFINITY);
 
   els.statTotal.textContent = String(allRows.length);
-  els.statTopF1.textContent = Number.isFinite(topF1) ? topF1.toFixed(4) : '-';
+  els.statTopF1.textContent = Number.isFinite(topF1) ? topF1.toFixed(2) : '-';
   els.statVisible.textContent = String(visibleRows.length);
 }
 

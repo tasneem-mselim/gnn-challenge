@@ -29,7 +29,7 @@ for _, row in leaderboard.iterrows():
     submitter_url = row.get("submitter_url", "")
     submitter_md = f"[{submitter}]({submitter_url})" if submitter and submitter_url else submitter
     lines.append(
-        "| {rank} | {team} | {run_id} | {model} | {model_type} | {f1_score:.4f} | {accuracy:.4f} | {precision:.4f} | {recall:.4f} | {submission_date} | {submitter} |".format(
+        "| {rank} | {team} | {run_id} | {model} | {model_type} | {f1_score:.2f} | {accuracy:.2f} | {precision:.2f} | {recall:.2f} | {submission_date} | {submitter} |".format(
             rank=int(row["rank"]),
             team=row["team"],
             run_id=row["run_id"],

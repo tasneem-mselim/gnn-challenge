@@ -198,7 +198,10 @@ if not new_rows:
 # Rebuild from inbox and re-rank
 updated_df = pd.DataFrame(new_rows)
 updated_df = updated_df.sort_values(by=["f1_score", "accuracy"], ascending=False, ignore_index=True)
-updated_df["rank"] = range(1, len(updated_df) + 1)
+metric_cols = ["f1_score", "accuracy", "precision", "recall"]
+updated_df[metric_cols] = updated_df[metric_cols].round(2)
+# Tied F1 scores share the same rank.
+updated_df["rank"] = updated_df["f1_score"].rank(method="dense", ascending=False).astype(int)
 
 # Write CSV (source of truth)
 updated_df.to_csv(LEADERBOARD_CSV, index=False)
@@ -219,7 +222,7 @@ md_lines = [
 
 for _, row in updated_df.iterrows():
     md_lines.append(
-        "| {rank} | {team} | {run_id} | {model} | {model_type} | {f1_score:.4f} | {accuracy:.4f} | {precision:.4f} | {recall:.4f} | {submission_date} | {submitter} |".format(
+        "| {rank} | {team} | {run_id} | {model} | {model_type} | {f1_score:.2f} | {accuracy:.2f} | {precision:.2f} | {recall:.2f} | {submission_date} | {submitter} |".format(
             rank=int(row["rank"]),
             team=row["team"],
             run_id=row["run_id"],
@@ -244,4 +247,4 @@ md_lines.extend([
 LEADERBOARD_MD.write_text("\n".join(md_lines), encoding="utf-8")
 
 print(f"✅ Leaderboard updated with {len(new_rows)} new submission(s)")
-print(f"   Top model: {updated_df.iloc[0]['model']} (F1={updated_df.iloc[0]['f1_score']:.4f})")
+print(f"   Top model: {updated_df.iloc[0]['model']} (F1={updated_df.iloc[0]['f1_score']:.2f})")
