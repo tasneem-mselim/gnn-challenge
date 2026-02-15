@@ -16,12 +16,13 @@
     <a href="https://huggingface.co/datasets/AI4Math/IneqMath"><img src="assets/huggingface.png" alt="hf" style="height:1em; vertical-align:middle;"/> Dataset</a> |
     <a href="https://huggingface.co/spaces/AI4Math/IneqMath-Leaderboard">🏆 Leaderboard</a> |
     <a href="https://ineqmath.github.io/#visualization">🔮 Visualization</a>
-    
+[![Leaderboard](https://img.shields.io/badge/Leaderboard?logo=GoogleChrome)](https://mubarraqqq.github.io/gnn-challenge/leaderboard.html)
+
   </p> -->
   <!--- BADGES: START --->
 [![GitHub license](https://img.shields.io/badge/License-MIT-green.svg?logo=github)](https://lbesson.mit-license.org/)
 [![GitHub license](https://img.shields.io/badge/License-CC--BY--SA--4.0-green.svg?logo=github)](https://creativecommons.org/licenses/by-sa/4.0/)
-[![Leaderboard](https://img.shields.io/badge/Leaderboard?logo=GoogleChrome)](https://mubarraqqq.github.io/gnn-challenge/leaderboard.html)
+
 
 <!--- BADGES: END --->
 
