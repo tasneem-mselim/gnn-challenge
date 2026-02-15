@@ -22,8 +22,8 @@ LEADERBOARD_CSV = Path("leaderboard/leaderboard.csv")
 LEADERBOARD_MD = Path("leaderboard.md")
 DOCS_LEADERBOARD_CSV = Path("docs/leaderboard.csv")
 ORGANIZER_SUBMISSIONS = [
-    ("submissions/advanced_gnn_preds.csv", "organizers", "advanced_gnn", "Advanced GNN (GraphSAGE)", "organizers", "mubarraqqq"),
-    ("submissions/baseline_mlp_preds.csv", "organizers", "baseline_mlp", "Baseline MLP", "organizers", "mubarraqqq"),
+    ("submissions/advanced_gnn_preds.csv", "organizers", "advanced_gnn", "Advanced GNN (GraphSAGE)", "human", "mubarraqqq"),
+    ("submissions/baseline_mlp_preds.csv", "organizers", "baseline_mlp", "Baseline MLP", "human", "mubarraqqq"),
 ]
 
 # Load ground truth
