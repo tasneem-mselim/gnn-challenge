@@ -4,7 +4,7 @@
 ## GNN Challenge: cfRNA → Placenta Inductive Prediction
 
 <div align="center">
-    <img src="images/IMG3.png" width='700' /> 
+    <img src="images/IMG3.png" width='640' /> 
 </div>
 
 <br>
