@@ -112,7 +112,7 @@ The benchmark includes meaningful modeling difficulty:
 
 [`build_dataset.ipynb`](./organizer_scripts/build_dataset.ipynb) and [Kaggle](https://www.kaggle.com/code/freeeman/maternal-2014425c3f4)
 
-Objective: Ensure structural compatibility for graph construction and inductive learning by Hnadling Expression Data, Parsing and Cleaning Metedata, and Expression-Metadata Fusion.
+Objective: Ensure structural compatibility for graph construction and inductive learning by handling expression data, parsing and cleaning metadata, and expression-metadata fusion.
 
 ## Advanced GNN Implementation
 
@@ -125,7 +125,7 @@ Key Components:
 - Graph Construction: Build hetero-graphs using similarity and ancestry edges.
 - Node Feature Encoding: Integrate gene expression and metadata into node-level features.
 - Neighborhood Aggregation: GraphSAGE-style layers with BatchNorm and ReLU for neighbor information propagation.
-- Mini-Batch Training: Use neighborhood sampling** for efficient training on large graphs.
+- Mini-Batch Training: Use neighborhood sampling for efficient training on large graphs.
 - Inductive Inference: Generate predictions for unseen placenta nodes without label leakage.
 
 ## Starter Assets
@@ -142,6 +142,7 @@ Submission instructions are in `CONTRIBUTING.md`.
 Key policy:
 
 - Only one submission attempt per participant (enforced in CI)
+- This public repository is **not privacy-preserving**: merged submission artifacts and leaderboard metadata are publicly visible.
 
 ## Leaderboard
 
@@ -149,6 +150,14 @@ Key policy:
 - Source CSV: `leaderboard/leaderboard.csv`
 - Rendered markdown: `leaderboard.md`
 - Tie handling: equal scores share rank
+
+## Maintainer Regeneration Command
+
+Use this command to regenerate all leaderboard outputs from the canonical pipeline:
+
+```bash
+python update_leaderboard.py && python competition/render_leaderboard.py
+```
 
 ## Citation
 

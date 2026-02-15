@@ -8,6 +8,7 @@ Participant training code is not executed here.
 
 - One submission attempt per participant is allowed.
 - Enforcement is automatic in CI.
+- This public repository is **not privacy-preserving**: merged submissions and leaderboard metadata are publicly visible.
 
 ## ⚙️ Compute Budget
 
@@ -61,6 +62,7 @@ Use:
 - `data/public/adjacency_matrix.csv` as adjacency matrix `A`
 - `data/public/train.csv` and `data/public/test.csv` as feature source for `X`
 - `data/public/test_nodes.csv` as ID reference for predictions
+- `data/public/graph_artifacts.pt` for prebuilt graph objects (recommended quick-start)
 
 Minimal PyG-style conversion:
 
@@ -86,6 +88,24 @@ Important:
 
 - Keep node ordering consistent between `A`, `X`, and node IDs.
 - `predictions.csv` IDs must match `data/public/test_nodes.csv`.
+
+### Using Prebuilt Graph Artifacts (`graph_artifacts.pt`)
+
+If you do not want to rebuild graphs manually, you can load ready-to-use artifacts:
+
+```python
+import torch
+
+artifact = torch.load("data/public/graph_artifacts.pt")
+train_graph = artifact["train_graph"]
+test_graph = artifact["test_graph"]
+
+# Optional helper tensors if present:
+# train_idx = artifact.get("train_idx")
+# test_idx = artifact.get("test_idx")
+```
+
+This is the fastest path for graph-based submissions because node features and connectivity are already aligned.
 
 ## Minimal Tabular Baseline
 
@@ -120,6 +140,15 @@ pd.DataFrame({"id": test["node_id"], "y_pred": proba}).to_csv("predictions.csv",
 
 ## Evaluation and Leaderboard
 
-- Primary metric: Macro F1
+- Primary metric: F1 Score
 - Also reported: Accuracy, Precision, Recall
 - Public leaderboard: `https://mubarraqqq.github.io/gnn-challenge/leaderboard.html`
+
+
+## Maintainer Regeneration
+
+To regenerate leaderboard artifacts consistently:
+
+```bash
+python update_leaderboard.py && python competition/render_leaderboard.py
+```

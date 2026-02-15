@@ -116,6 +116,7 @@ jobs:
         run: |
           python - <<'PY'
           import csv
+          import json
           import os
           import sys
           from pathlib import Path
@@ -130,17 +131,27 @@ jobs:
               print("ℹ️ leaderboard/leaderboard.csv not found yet; skipping one-attempt check.")
               sys.exit(0)
 
+          prior_submitters = set()
           with leaderboard_csv.open(newline="", encoding="utf-8") as f:
               reader = csv.DictReader(f)
-              if not reader.fieldnames or "submitter" not in reader.fieldnames:
-                  print("❌ Cannot enforce one-attempt policy: 'submitter' column missing from leaderboard/leaderboard.csv")
-                  sys.exit(1)
+              if reader.fieldnames and "submitter" in reader.fieldnames:
+                  prior_submitters.update(
+                      (row.get("submitter") or "").strip().lower()
+                      for row in reader
+                      if (row.get("submitter") or "").strip()
+                  )
+              else:
+                  print("ℹ️ 'submitter' column missing in leaderboard CSV; using metadata fallback scan.")
 
-              prior_submitters = {
-                  (row.get("submitter") or "").strip().lower()
-                  for row in reader
-                  if (row.get("submitter") or "").strip()
-              }
+          # Fallback/defense-in-depth: scan existing metadata files for submitter logins.
+          for meta_path in Path("submissions/inbox").glob("*/*/metadata.json"):
+              try:
+                  data = json.loads(meta_path.read_text(encoding="utf-8"))
+              except Exception:
+                  continue
+              s = (data.get("submitter") or "").strip().lower()
+              if s:
+                  prior_submitters.add(s)
 
           if submitter in prior_submitters:
               print(f"❌ Submission rejected: '{submitter}' has already submitted once. Only one attempt per participant is allowed.")
