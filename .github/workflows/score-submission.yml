@@ -58,15 +58,29 @@ jobs:
                 per_page: 100,
               }
             );
-            const predictionFile = files
-              .map(f => f.filename)
-              .find(name => name.startsWith("submissions/inbox/") && name.endsWith("/predictions.csv"));
-            const metadataFile = files
-              .map(f => f.filename)
-              .find(name => name.startsWith("submissions/inbox/") && name.endsWith("/metadata.json"));
 
-            if (!predictionFile || !metadataFile) {
-              core.setFailed("Submission must include predictions.csv and metadata.json under submissions/inbox/<team>/<run_id>/");
+            const activeSubmissionFiles = files.filter(f =>
+              f.filename.startsWith("submissions/inbox/") &&
+              f.status !== "removed"
+            );
+
+            const predictionCandidates = activeSubmissionFiles.filter(f => f.filename.endsWith("/predictions.csv"));
+            const metadataCandidates = activeSubmissionFiles.filter(f => f.filename.endsWith("/metadata.json"));
+
+            if (predictionCandidates.length !== 1 || metadataCandidates.length !== 1) {
+              core.setFailed("PR must include exactly one active predictions.csv and one active metadata.json under submissions/inbox/<team>/<run_id>/.");
+              return;
+            }
+
+            const predictionFile = predictionCandidates[0].filename;
+            const metadataFile = metadataCandidates[0].filename;
+
+            const predParts = predictionFile.split("/");
+            const metaParts = metadataFile.split("/");
+            const predKey = predParts.slice(0, 4).join("/");
+            const metaKey = metaParts.slice(0, 4).join("/");
+            if (predKey !== metaKey) {
+              core.setFailed("predictions.csv and metadata.json must be in the same submissions/inbox/<team>/<run_id>/ folder.");
               return;
             }
 
