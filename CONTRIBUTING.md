@@ -8,7 +8,6 @@ Participant training code is not executed here.
 
 - One submission attempt per participant is allowed.
 - Enforcement is automatic in CI.
-- This public repository is **not privacy-preserving**: merged submissions and leaderboard metadata are publicly visible.
 
 ## ⚙️ Compute Budget
 
