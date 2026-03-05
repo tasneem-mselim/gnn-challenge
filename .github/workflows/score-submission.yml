@@ -100,6 +100,7 @@ jobs:
             core.setOutput("run_id", parts[3]);
 
       - name: Download submission files (read-only)
+        if: github.event.action != 'closed'
         id: download_submission
         env:
           PRED_PATH: ${{ steps.find_submission.outputs.prediction }}
@@ -125,6 +126,7 @@ jobs:
           curl -fsSL "$META_URL" -o /tmp/pr_metadata.json
 
       - name: Enforce one submission attempt per participant
+        if: github.event.action != 'closed'
         env:
           SUBMITTER: ${{ steps.find_submission.outputs.submitter }}
         run: |
@@ -175,17 +177,19 @@ jobs:
           PY
 
       - name: Validate submission format
+        if: github.event.action != 'closed'
         run: |
           python competition/validate_submission.py /tmp/pr_predictions.csv
 
       - name: Run scoring script
+        if: github.event.action != 'closed'
         id: score
         run: |
           python scoring_script.py /tmp/pr_predictions.csv
         continue-on-error: true
 
       - name: Extract metrics and comment
-        if: steps.score.outcome == 'success'
+        if: github.event.action != 'closed' && steps.score.outcome == 'success'
         uses: actions/github-script@v6
         with:
           script: |
@@ -210,24 +214,25 @@ jobs:
           TEAM: ${{ steps.find_submission.outputs.team }}
           RUN_ID: ${{ steps.find_submission.outputs.run_id }}
         run: |
-          mkdir -p "submissions/inbox/${TEAM}/${RUN_ID}"
-          cp /tmp/pr_predictions.csv "submissions/inbox/${TEAM}/${RUN_ID}/predictions.csv"
-          # Merge submitter info into metadata.json
+          # Merge submitter info into metadata.json on merged main branch.
           python - <<'PY'
           import json
           import os
-          meta_path = "submissions/inbox/${TEAM}/${RUN_ID}/metadata.json"
-          try:
-              with open("/tmp/pr_metadata.json", "r", encoding="utf-8") as f:
-                  meta = json.load(f)
-          except Exception:
-              meta = {}
-          meta["submitter"] = os.environ.get("SUBMITTER", "")
-          meta["pr_number"] = os.environ.get("PR_NUMBER", "")
+          from pathlib import Path
+
           team = os.environ.get("TEAM", "")
           run_id = os.environ.get("RUN_ID", "")
-          meta_path = f"submissions/inbox/{team}/{run_id}/metadata.json"
-          with open(meta_path, "w", encoding="utf-8") as f:
+          meta_path = Path(f"submissions/inbox/{team}/{run_id}/metadata.json")
+          if not meta_path.exists():
+              raise FileNotFoundError(f"Merged submission metadata not found: {meta_path}")
+
+          with meta_path.open("r", encoding="utf-8") as f:
+              meta = json.load(f)
+
+          meta["submitter"] = os.environ.get("SUBMITTER", "")
+          meta["pr_number"] = os.environ.get("PR_NUMBER", "")
+
+          with meta_path.open("w", encoding="utf-8") as f:
               json.dump(meta, f, indent=2)
           PY
           python update_leaderboard.py
