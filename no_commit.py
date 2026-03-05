@@ -90,15 +90,11 @@ test_node_ids = all_nodes.iloc[data.test_mask.numpy()]["node_id"].values
 test_predictions = preds[data.test_mask].cpu().numpy()
 
 submission = pd.DataFrame({
-    "node_id": test_node_ids,
-    "disease_labels": test_predictions
+    "id": test_node_ids,
+    "y_pred": test_predictions
 })
 
 submission.to_csv("predictions.csv", index=False)
 print("Submission saved to predictions.csv")
-
-
-
-
 
 
