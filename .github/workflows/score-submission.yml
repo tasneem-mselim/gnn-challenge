@@ -2,13 +2,19 @@ name: Score Submission
 
 on:
   pull_request_target:
-    types: [opened, reopened, synchronize, closed]
+    types: [opened, reopened, synchronize]
     paths:
       - 'submissions/inbox/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'submissions/inbox/**/predictions.csv'
   workflow_dispatch:
 
 jobs:
   score:
+    if: github.event_name == 'pull_request_target'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -100,7 +106,6 @@ jobs:
             core.setOutput("run_id", parts[3]);
 
       - name: Download submission files (read-only)
-        if: github.event.action != 'closed'
         id: download_submission
         env:
           PRED_PATH: ${{ steps.find_submission.outputs.prediction }}
@@ -126,7 +131,6 @@ jobs:
           curl -fsSL "$META_URL" -o /tmp/pr_metadata.json
 
       - name: Enforce one submission attempt per participant
-        if: github.event.action != 'closed'
         env:
           SUBMITTER: ${{ steps.find_submission.outputs.submitter }}
         run: |
@@ -177,19 +181,17 @@ jobs:
           PY
 
       - name: Validate submission format
-        if: github.event.action != 'closed'
         run: |
           python competition/validate_submission.py /tmp/pr_predictions.csv
 
       - name: Run scoring script
-        if: github.event.action != 'closed'
         id: score
         run: |
           python scoring_script.py /tmp/pr_predictions.csv
         continue-on-error: true
 
       - name: Extract metrics and comment
-        if: github.event.action != 'closed' && steps.score.outcome == 'success'
+        if: steps.score.outcome == 'success'
         uses: actions/github-script@v6
         with:
           script: |
@@ -206,45 +208,53 @@ jobs:
               body: `## 🏆 Submission Scored\n\n\`\`\`\n${metrics}\n\`\`\`\n\nCheck the [leaderboard](https://github.com/${{ github.repository }}/blob/main/leaderboard.md) for rankings!`
             });
 
-      - name: Update leaderboard
-        if: github.event_name == 'pull_request_target' && github.event.action == 'closed' && github.event.pull_request.merged == true
-        env:
-          SUBMITTER: ${{ steps.find_submission.outputs.submitter }}
-          PR_NUMBER: ${{ steps.find_submission.outputs.pr_number }}
-          TEAM: ${{ steps.find_submission.outputs.team }}
-          RUN_ID: ${{ steps.find_submission.outputs.run_id }}
+      - name: Cleanup private labels
+        if: always()
         run: |
-          # Merge submitter info into metadata.json on merged main branch.
-          python - <<'PY'
-          import json
-          import os
-          from pathlib import Path
+          rm -f data/test_labels.csv
 
-          team = os.environ.get("TEAM", "")
-          run_id = os.environ.get("RUN_ID", "")
-          meta_path = Path(f"submissions/inbox/{team}/{run_id}/metadata.json")
-          if not meta_path.exists():
-              raise FileNotFoundError(f"Merged submission metadata not found: {meta_path}")
+  refresh_leaderboard_on_main:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
-          with meta_path.open("r", encoding="utf-8") as f:
-              meta = json.load(f)
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-          meta["submitter"] = os.environ.get("SUBMITTER", "")
-          meta["pr_number"] = os.environ.get("PR_NUMBER", "")
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
 
-          with meta_path.open("w", encoding="utf-8") as f:
-              json.dump(meta, f, indent=2)
-          PY
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas scikit-learn torch torch-geometric
+
+      - name: Restore private test labels
+        env:
+          TEST_LABELS_CSV_B64: ${{ secrets.TEST_LABELS_CSV_B64 }}
+        run: |
+          if [ -z "$TEST_LABELS_CSV_B64" ]; then
+            echo "Missing TEST_LABELS_CSV_B64 secret"
+            exit 1
+          fi
+          mkdir -p data
+          echo "$TEST_LABELS_CSV_B64" | base64 -d > data/test_labels.csv
+
+      - name: Regenerate leaderboard artifacts
+        run: |
           python update_leaderboard.py
           python competition/render_leaderboard.py
 
-      - name: Commit leaderboard update
-        if: github.event_name == 'pull_request_target' && github.event.action == 'closed' && github.event.pull_request.merged == true
+      - name: Commit leaderboard artifacts
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
-          git add leaderboard/leaderboard.csv docs/leaderboard.csv leaderboard.md submissions/inbox
-          git commit -m "Update leaderboard with new submission" || true
+          git add leaderboard/leaderboard.csv docs/leaderboard.csv leaderboard.md
+          git commit -m "Refresh leaderboard artifacts" || true
           git push
 
       - name: Cleanup private labels
