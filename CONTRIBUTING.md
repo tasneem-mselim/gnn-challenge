@@ -82,9 +82,12 @@ Example metadata:
   "team": "my_team",
   "run_id": "run_001",
   "model_name": "My GNN v1",
-  "model_type": "human"
+  "model_type": "human",
+  "submitter": "my-github-username"
 }
 ```
+
+`submitter` must be your exact GitHub username and must match the PR author.
 
 ## 🧩 Working With Graph Data (`A` and `X`) in Your Codebase
 
