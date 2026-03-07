@@ -144,6 +144,7 @@ submission_files = _discover_submission_files()
 print(f"🔍 Found {len(submission_files)} submission file(s) in submissions/inbox")
 
 new_rows = []
+decrypt_failures = []
 
 with tempfile.TemporaryDirectory(prefix="leaderboard_decrypt_") as decrypt_dir:
     decrypt_dir_path = Path(decrypt_dir)
@@ -162,6 +163,7 @@ with tempfile.TemporaryDirectory(prefix="leaderboard_decrypt_") as decrypt_dir:
         if pred_path.name.endswith(".enc"):
             score_path = _decrypt_submission_file(pred_path, decrypt_dir_path)
             if score_path is None:
+                decrypt_failures.append(str(pred_path))
                 continue
 
         try:
@@ -241,8 +243,19 @@ with tempfile.TemporaryDirectory(prefix="leaderboard_decrypt_") as decrypt_dir:
         })
 
 if not new_rows:
+    if decrypt_failures:
+        print("❌ Encrypted submission decryption failed for:")
+        for failed in decrypt_failures:
+            print(f"   - {failed}")
+        raise SystemExit(1)
     print("⚠️ No valid submissions found in inbox.")
     exit(0)
+
+if decrypt_failures:
+    print("❌ Encrypted submission decryption failed for:")
+    for failed in decrypt_failures:
+        print(f"   - {failed}")
+    raise SystemExit(1)
 
 # Rebuild from inbox and re-rank
 updated_df = pd.DataFrame(new_rows)

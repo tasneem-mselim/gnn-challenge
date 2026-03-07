@@ -154,6 +154,22 @@ jobs:
           chmod 700 "$GNUPGHOME"
           echo "$SUBMISSION_PRIVATE_KEY_ASC" | gpg --batch --import
 
+      - name: Verify keypair consistency for refresh
+        run: |
+          export GNUPGHOME=/tmp/gnupg_submission
+          secret_fpr="$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/ {print $10; exit}')"
+          public_fpr="$(gpg --show-keys --with-colons .github/keys/submission_public.asc | awk -F: '/^fpr:/ {print $10; exit}')"
+          if [ -z "$secret_fpr" ] || [ -z "$public_fpr" ]; then
+            echo "Unable to determine key fingerprints for refresh"
+            exit 1
+          fi
+          echo "Refresh secret key fingerprint: $secret_fpr"
+          echo "Repo public key fingerprint:   $public_fpr"
+          if [ "$secret_fpr" != "$public_fpr" ]; then
+            echo "❌ Secret private key does not match .github/keys/submission_public.asc"
+            exit 1
+          fi
+
       - name: Decrypt submission predictions
         env:
           SUBMISSION_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SUBMISSION_PRIVATE_KEY_PASSPHRASE }}
