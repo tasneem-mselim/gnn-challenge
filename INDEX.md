@@ -59,7 +59,7 @@ leaderboard.md + docs/leaderboard.csv regenerated
 1. Train model on `data/train.csv`
 2. Generate predictions for `data/test.csv`
 3. Save:
-   - `submissions/inbox/<team>/<run_id>/predictions.csv` (`id`, `y_pred`)
+   - `submissions/inbox/<team>/<run_id>/predictions.csv.enc` (encrypted `id`, `y_pred`)
    - `submissions/inbox/<team>/<run_id>/metadata.json`
 4. Open PR → CI scores → leaderboard updates on merge
 

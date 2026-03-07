@@ -142,7 +142,7 @@ Submission instructions are in `CONTRIBUTING.md`.
 Key policy:
 
 - Only one submission attempt per participant (enforced in CI)
-- This public repository is **not privacy-preserving**: merged submission artifacts and leaderboard metadata are publicly visible.
+- Submission files are public but participant predictions are encrypted at rest (`predictions.csv.enc`); only CI with organizer secrets decrypts for scoring.
 
 ## Leaderboard
 

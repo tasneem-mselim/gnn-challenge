@@ -33,14 +33,46 @@ submissions/inbox/<team>/<run_id>/
 
 Files:
 
-- `predictions.csv` with columns: `id`, `y_pred`
+- `predictions.csv.enc` (encrypted `predictions.csv` payload)
 - `metadata.json`
 
 Example:
 
 ```text
-submissions/inbox/my_team/run_001/predictions.csv
+submissions/inbox/my_team/run_001/predictions.csv.enc
 submissions/inbox/my_team/run_001/metadata.json
+```
+
+### Encryption (Required)
+
+Create plaintext predictions locally first (do not commit plaintext):
+
+```bash
+python your_model.py  # writes predictions.csv with columns id,y_pred
+```
+
+Import organizer public key and encrypt:
+
+```bash
+gpg --import .github/keys/submission_public.asc
+gpg --list-keys
+gpg --output submissions/inbox/<team>/<run_id>/predictions.csv.enc \
+  --encrypt --recipient 9BBACC5C951961B9B836574110DC3903B67F4800 \
+  predictions.csv
+```
+
+Security requirements:
+
+- Do not commit plaintext `predictions.csv` to your PR.
+- CI rejects plaintext prediction files.
+- Only `predictions.csv.enc` is accepted for participant submissions.
+
+Commit only encrypted artifact + metadata:
+
+```bash
+git add submissions/inbox/<team>/<run_id>/predictions.csv.enc
+git add submissions/inbox/<team>/<run_id>/metadata.json
+git status
 ```
 
 Example metadata:
@@ -86,7 +118,7 @@ edge_index = torch.tensor(np.vstack([src, dst]), dtype=torch.long)
 Important:
 
 - Keep node ordering consistent between `A`, `X`, and node IDs.
-- `predictions.csv` IDs must match `data/public/test_nodes.csv`.
+- IDs inside your encrypted payload must match `data/public/test_nodes.csv`.
 
 ### Using Prebuilt Graph Artifacts (`graph_artifacts.pt`)
 
@@ -131,9 +163,11 @@ proba = clf.predict_proba(X_test_scaled)[:, 1]
 pd.DataFrame({"id": test["node_id"], "y_pred": proba}).to_csv("predictions.csv", index=False)
 ```
 
+Then encrypt `predictions.csv` to `predictions.csv.enc` before opening your PR.
+
 ## Validation Rules
 
-- `predictions.csv` must include `id` and `y_pred`.
+- Decrypted `predictions.csv` must include `id` and `y_pred`.
 - `y_pred` may be probability (`0-1`) or hard label (`0/1`).
 - Row IDs must match `data/public/test_nodes.csv`.
 

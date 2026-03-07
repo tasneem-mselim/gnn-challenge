@@ -17,15 +17,15 @@ Your repository is now configured for fully automated scoring with a CSV‑based
 ### Submission Format
 Submissions must be:
 ```
-submissions/inbox/<team>/<run_id>/predictions.csv
+submissions/inbox/<team>/<run_id>/predictions.csv.enc
 submissions/inbox/<team>/<run_id>/metadata.json
 ```
-`predictions.csv` columns:
+Decrypted `predictions.csv` columns:
 - `id`
 - `y_pred` (probability or hard label)
 
 ## 🚀 How It Works (Automated)
-1. Participant opens PR with `predictions.csv` + `metadata.json`.
+1. Participant opens PR with `predictions.csv.enc` + `metadata.json`.
 2. CI validates, scores, and comments on the PR.
 3. On merge, CI appends results to `leaderboard/leaderboard.csv`.
 4. `leaderboard.md` and `docs/leaderboard.csv` are regenerated.

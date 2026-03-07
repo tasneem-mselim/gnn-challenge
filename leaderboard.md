@@ -10,4 +10,4 @@
 
 ## Notes
 - This leaderboard is auto-generated from `leaderboard/leaderboard.csv`.
-- Submissions must follow the `submissions/inbox/<team>/<run_id>/predictions.csv` format.
+- Submissions must follow the `submissions/inbox/<team>/<run_id>/predictions.csv.enc` format.

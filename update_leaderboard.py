@@ -9,6 +9,8 @@ and regenerates leaderboard.md + docs/leaderboard.csv for GitHub Pages.
 import os
 import csv
 import json
+import subprocess
+import tempfile
 from pathlib import Path
 from datetime import datetime
 
@@ -69,6 +71,45 @@ def _sync_organizer_submissions():
 
 _sync_organizer_submissions()
 
+
+def _discover_submission_files():
+    encrypted = list(SUBMISSIONS_DIR.glob("*/*/predictions.csv.enc"))
+    plaintext = list(SUBMISSIONS_DIR.glob("*/*/predictions.csv"))
+
+    by_key = {}
+    for path in encrypted:
+        key = (path.parent.parent.name, path.parent.name)
+        by_key[key] = path
+
+    for path in plaintext:
+        key = (path.parent.parent.name, path.parent.name)
+        if key not in by_key:
+            by_key[key] = path
+
+    return list(by_key.values())
+
+
+def _decrypt_submission_file(enc_path: Path, out_dir: Path):
+    out_path = out_dir / f"{enc_path.parent.parent.name}__{enc_path.parent.name}__predictions.csv"
+    passphrase = os.environ.get("SUBMISSION_PRIVATE_KEY_PASSPHRASE", "")
+
+    cmd = ["gpg", "--batch", "--yes"]
+    if passphrase:
+        cmd.extend(["--pinentry-mode", "loopback", "--passphrase", passphrase])
+    cmd.extend(["--decrypt", "-o", str(out_path), str(enc_path)])
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+    except FileNotFoundError:
+        print("⚠️ gpg is not installed. Encrypted submissions cannot be scored in this environment.")
+        return None
+    if result.returncode != 0:
+        stderr = (result.stderr or "").strip().splitlines()
+        reason = stderr[-1] if stderr else "gpg decryption failed"
+        print(f"⚠️ Failed to decrypt {enc_path}: {reason}")
+        return None
+    return out_path
+
 # Ensure leaderboard CSV exists
 LEADERBOARD_CSV.parent.mkdir(parents=True, exist_ok=True)
 if not LEADERBOARD_CSV.exists():
@@ -99,96 +140,105 @@ if not leaderboard_df.empty:
         prev_by_key[key] = row
 
 # Find submissions
-submission_files = list(SUBMISSIONS_DIR.glob("*/*/predictions.csv"))
+submission_files = _discover_submission_files()
 print(f"🔍 Found {len(submission_files)} submission file(s) in submissions/inbox")
 
 new_rows = []
 
-for pred_path in submission_files:
-    team = pred_path.parent.parent.name
-    run_id = pred_path.parent.name
-    key = (team, run_id)
+with tempfile.TemporaryDirectory(prefix="leaderboard_decrypt_") as decrypt_dir:
+    decrypt_dir_path = Path(decrypt_dir)
 
-    meta_path = pred_path.parent / "metadata.json"
-    if not meta_path.exists():
-        print(f"⚠️ Missing metadata.json for {pred_path}. Skipping.")
-        continue
+    for pred_path in submission_files:
+        team = pred_path.parent.parent.name
+        run_id = pred_path.parent.name
+        key = (team, run_id)
 
-    try:
-        submission = pd.read_csv(pred_path)
-    except Exception as e:
-        print(f"❌ Failed to read {pred_path}: {e}")
-        continue
+        meta_path = pred_path.parent / "metadata.json"
+        if not meta_path.exists():
+            print(f"⚠️ Missing metadata.json for {pred_path}. Skipping.")
+            continue
 
-    # Validate format: id, y_pred
-    if "id" not in submission.columns or "y_pred" not in submission.columns:
-        print(f"⚠️ Invalid format in {pred_path}. Required columns: id, y_pred")
-        continue
+        score_path = pred_path
+        if pred_path.name.endswith(".enc"):
+            score_path = _decrypt_submission_file(pred_path, decrypt_dir_path)
+            if score_path is None:
+                continue
 
-    # Align predictions with test labels using id
-    submission = submission.rename(columns={"id": "node_id"})
-    if submission["y_pred"].dtype.kind in {"f", "c"}:
-        proba = submission["y_pred"].astype(float).values
-        preds = (proba >= 0.5).astype(int)
-    else:
-        preds = submission["y_pred"].astype(int).values
-
-    if len(preds) != len(test_true):
-        print(f"⚠️ Length mismatch in {pred_path}. Expected {len(test_true)}, got {len(preds)}")
-        continue
-
-    # Compute metrics
-    f1 = f1_score(test_true, preds, average="macro", zero_division=0)
-    acc = accuracy_score(test_true, preds)
-    prec = precision_score(test_true, preds, zero_division=0)
-    rec = recall_score(test_true, preds, zero_division=0)
-    _ = confusion_matrix(test_true, preds)
-
-    # Metadata
-    try:
-        with open(meta_path, "r", encoding="utf-8") as f:
-            meta = json.load(f)
-    except Exception:
-        meta = {}
-
-    model_name = meta.get("model_name", f"{team}-{run_id}")
-    model_type = meta.get("model_type", "unknown")
-
-    key = (team, run_id)
-    submitter = meta.get("submitter", "participant")
-    submitter_url = f"https://github.com/{submitter}" if submitter else ""
-
-    prev = prev_by_key.get(key)
-    metrics_unchanged = False
-    if prev is not None:
         try:
-            metrics_unchanged = (
-                abs(float(prev["f1_score"]) - f1) < 1e-9
-                and abs(float(prev["accuracy"]) - acc) < 1e-9
-                and abs(float(prev["precision"]) - prec) < 1e-9
-                and abs(float(prev["recall"]) - rec) < 1e-9
-            )
+            submission = pd.read_csv(score_path)
+        except Exception as e:
+            print(f"❌ Failed to read {pred_path}: {e}")
+            continue
+
+        # Validate format: id, y_pred
+        if "id" not in submission.columns or "y_pred" not in submission.columns:
+            print(f"⚠️ Invalid format in {pred_path}. Required columns: id, y_pred")
+            continue
+
+        # Align predictions with test labels using id
+        submission = submission.rename(columns={"id": "node_id"})
+        if submission["y_pred"].dtype.kind in {"f", "c"}:
+            proba = submission["y_pred"].astype(float).values
+            preds = (proba >= 0.5).astype(int)
+        else:
+            preds = submission["y_pred"].astype(int).values
+
+        if len(preds) != len(test_true):
+            print(f"⚠️ Length mismatch in {pred_path}. Expected {len(test_true)}, got {len(preds)}")
+            continue
+
+        # Compute metrics
+        f1 = f1_score(test_true, preds, average="macro", zero_division=0)
+        acc = accuracy_score(test_true, preds)
+        prec = precision_score(test_true, preds, zero_division=0)
+        rec = recall_score(test_true, preds, zero_division=0)
+        _ = confusion_matrix(test_true, preds)
+
+        # Metadata
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
         except Exception:
-            metrics_unchanged = False
+            meta = {}
 
-    submission_date = prev["submission_date"] if (metrics_unchanged and prev is not None) else datetime.now().strftime("%Y-%m-%d %H:%M")
+        model_name = meta.get("model_name", f"{team}-{run_id}")
+        model_type = meta.get("model_type", "unknown")
 
-    new_rows.append({
-        "rank": 0,
-        "team": team,
-        "run_id": run_id,
-        "model": model_name,
-        "model_type": model_type,
-        "f1_score": f1,
-        "accuracy": acc,
-        "precision": prec,
-        "recall": rec,
-        "submission_date": submission_date,
-        "submitter": submitter,
-        "submitter_url": submitter_url,
-        "pr_number": meta.get("pr_number", ""),
-        "submission_path": str(pred_path),
-    })
+        key = (team, run_id)
+        submitter = meta.get("submitter", "participant")
+        submitter_url = f"https://github.com/{submitter}" if submitter else ""
+
+        prev = prev_by_key.get(key)
+        metrics_unchanged = False
+        if prev is not None:
+            try:
+                metrics_unchanged = (
+                    abs(float(prev["f1_score"]) - f1) < 1e-9
+                    and abs(float(prev["accuracy"]) - acc) < 1e-9
+                    and abs(float(prev["precision"]) - prec) < 1e-9
+                    and abs(float(prev["recall"]) - rec) < 1e-9
+                )
+            except Exception:
+                metrics_unchanged = False
+
+        submission_date = prev["submission_date"] if (metrics_unchanged and prev is not None) else datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        new_rows.append({
+            "rank": 0,
+            "team": team,
+            "run_id": run_id,
+            "model": model_name,
+            "model_type": model_type,
+            "f1_score": f1,
+            "accuracy": acc,
+            "precision": prec,
+            "recall": rec,
+            "submission_date": submission_date,
+            "submitter": submitter,
+            "submitter_url": submitter_url,
+            "pr_number": meta.get("pr_number", ""),
+            "submission_path": str(pred_path),
+        })
 
 if not new_rows:
     print("⚠️ No valid submissions found in inbox.")
@@ -240,7 +290,7 @@ md_lines.extend([
     "",
     "## Notes",
     "- This leaderboard is auto-generated from `leaderboard/leaderboard.csv`.",
-    "- Submissions must follow the `submissions/inbox/<team>/<run_id>/predictions.csv` format.",
+    "- Submissions must follow the `submissions/inbox/<team>/<run_id>/predictions.csv.enc` format.",
 ])
 
 LEADERBOARD_MD.write_text("\n".join(md_lines), encoding="utf-8")

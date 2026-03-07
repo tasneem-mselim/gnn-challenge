@@ -9,7 +9,8 @@ on:
     branches:
       - main
     paths:
-      - 'submissions/inbox/**/predictions.csv'
+      - 'submissions/inbox/**/predictions.csv.enc'
+      - 'submissions/inbox/**/metadata.json'
   workflow_dispatch:
 
 jobs:
@@ -70,11 +71,17 @@ jobs:
               f.status !== "removed"
             );
 
-            const predictionCandidates = activeSubmissionFiles.filter(f => f.filename.endsWith("/predictions.csv"));
+            const predictionCandidates = activeSubmissionFiles.filter(f => f.filename.endsWith("/predictions.csv.enc"));
+            const plaintextCandidates = activeSubmissionFiles.filter(f => f.filename.endsWith("/predictions.csv"));
             const metadataCandidates = activeSubmissionFiles.filter(f => f.filename.endsWith("/metadata.json"));
 
+            if (plaintextCandidates.length > 0) {
+              core.setFailed("Plaintext predictions.csv is not allowed. Submit encrypted predictions.csv.enc only.");
+              return;
+            }
+
             if (predictionCandidates.length !== 1 || metadataCandidates.length !== 1) {
-              core.setFailed("PR must include exactly one active predictions.csv and one active metadata.json under submissions/inbox/<team>/<run_id>/.");
+              core.setFailed("PR must include exactly one active predictions.csv.enc and one active metadata.json under submissions/inbox/<team>/<run_id>/.");
               return;
             }
 
@@ -86,13 +93,13 @@ jobs:
             const predKey = predParts.slice(0, 4).join("/");
             const metaKey = metaParts.slice(0, 4).join("/");
             if (predKey !== metaKey) {
-              core.setFailed("predictions.csv and metadata.json must be in the same submissions/inbox/<team>/<run_id>/ folder.");
+              core.setFailed("predictions.csv.enc and metadata.json must be in the same submissions/inbox/<team>/<run_id>/ folder.");
               return;
             }
 
             const parts = predictionFile.split("/");
             if (parts.length < 5) {
-              core.setFailed("Invalid submission path. Expected submissions/inbox/<team>/<run_id>/predictions.csv");
+              core.setFailed("Invalid submission path. Expected submissions/inbox/<team>/<run_id>/predictions.csv.enc");
               return;
             }
 
@@ -118,7 +125,7 @@ jobs:
             exit 1
           fi
           case "$PRED_PATH" in
-            submissions/inbox/*/*/predictions.csv) ;;
+            submissions/inbox/*/*/predictions.csv.enc) ;;
             *) echo "Invalid submission path: $PRED_PATH"; exit 1 ;;
           esac
           case "$META_PATH" in
@@ -127,8 +134,38 @@ jobs:
           esac
           PRED_URL="https://raw.githubusercontent.com/${HEAD_REPO}/${HEAD_SHA}/${PRED_PATH}"
           META_URL="https://raw.githubusercontent.com/${HEAD_REPO}/${HEAD_SHA}/${META_PATH}"
-          curl -fsSL "$PRED_URL" -o /tmp/pr_predictions.csv
+          curl -fsSL "$PRED_URL" -o /tmp/pr_predictions.csv.enc
           curl -fsSL "$META_URL" -o /tmp/pr_metadata.json
+
+      - name: Import submission private key
+        env:
+          SUBMISSION_PRIVATE_KEY_ASC: ${{ secrets.SUBMISSION_PRIVATE_KEY_ASC }}
+        run: |
+          if ! command -v gpg >/dev/null 2>&1; then
+            echo "gpg is required but not installed on runner"
+            exit 1
+          fi
+          if [ -z "$SUBMISSION_PRIVATE_KEY_ASC" ]; then
+            echo "Missing SUBMISSION_PRIVATE_KEY_ASC secret"
+            exit 1
+          fi
+          export GNUPGHOME=/tmp/gnupg_submission
+          mkdir -p "$GNUPGHOME"
+          chmod 700 "$GNUPGHOME"
+          echo "$SUBMISSION_PRIVATE_KEY_ASC" | gpg --batch --import
+
+      - name: Decrypt submission predictions
+        env:
+          SUBMISSION_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SUBMISSION_PRIVATE_KEY_PASSPHRASE }}
+        run: |
+          export GNUPGHOME=/tmp/gnupg_submission
+          if [ -n "$SUBMISSION_PRIVATE_KEY_PASSPHRASE" ]; then
+            gpg --batch --yes --pinentry-mode loopback \
+              --passphrase "$SUBMISSION_PRIVATE_KEY_PASSPHRASE" \
+              --decrypt /tmp/pr_predictions.csv.enc > /tmp/pr_predictions.csv
+          else
+            gpg --batch --yes --decrypt /tmp/pr_predictions.csv.enc > /tmp/pr_predictions.csv
+          fi
 
       - name: Enforce one submission attempt per participant
         env:
@@ -212,6 +249,8 @@ jobs:
         if: always()
         run: |
           rm -f data/test_labels.csv
+          rm -f /tmp/pr_predictions.csv /tmp/pr_predictions.csv.enc /tmp/pr_metadata.json
+          rm -rf /tmp/gnupg_submission
 
   refresh_leaderboard_on_main:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -244,6 +283,23 @@ jobs:
           mkdir -p data
           echo "$TEST_LABELS_CSV_B64" | base64 -d > data/test_labels.csv
 
+      - name: Import submission private key
+        env:
+          SUBMISSION_PRIVATE_KEY_ASC: ${{ secrets.SUBMISSION_PRIVATE_KEY_ASC }}
+        run: |
+          if ! command -v gpg >/dev/null 2>&1; then
+            echo "gpg is required but not installed on runner"
+            exit 1
+          fi
+          if [ -z "$SUBMISSION_PRIVATE_KEY_ASC" ]; then
+            echo "Missing SUBMISSION_PRIVATE_KEY_ASC secret"
+            exit 1
+          fi
+          export GNUPGHOME=/tmp/gnupg_submission
+          mkdir -p "$GNUPGHOME"
+          chmod 700 "$GNUPGHOME"
+          echo "$SUBMISSION_PRIVATE_KEY_ASC" | gpg --batch --import
+
       - name: Regenerate leaderboard artifacts
         run: |
           python update_leaderboard.py
@@ -261,5 +317,6 @@ jobs:
         if: always()
         run: |
           rm -f data/test_labels.csv
+          rm -rf /tmp/gnupg_submission
 
           

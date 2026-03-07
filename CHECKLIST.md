@@ -63,7 +63,7 @@ git push origin main
 
 1. Train model on `train.csv`
 2. Generate predictions for `test.csv`
-3. Save `predictions.csv` with `id`,`y_pred`
+3. Save `predictions.csv` with `id`,`y_pred`, then encrypt to `predictions.csv.enc`
 4. Add `metadata.json`
 5. Open PR
 6. ✅ Auto-scored in CI
@@ -84,6 +84,6 @@ git push origin main
 ├── submissions/
 │   └── inbox/
 │       └── <team>/<run_id>/
-│           ├── predictions.csv
+│           ├── predictions.csv.enc
 │           └── metadata.json
 ```
