@@ -1,4 +1,5 @@
-rank,team,run_id,model,model_type,f1_score,accuracy,precision,recall,submission_date,submitter,submitter_url,pr_number,submission_path
-1,Mubaraq,run_001,GAT Test,human,0.38,0.61,0.0,0.0,2026-03-08 14:28,Mubarraqqq,https://github.com/Mubarraqqq,,submissions/inbox/Mubaraq/run_001/predictions.csv.enc
-2,Elhouiti_ikram,run_05,My GNN V1,human,0.33,0.4,0.15,0.12,2026-03-08 14:29,El-Ikram,https://github.com/El-Ikram,,submissions/inbox/Elhouiti_ikram/run_05/predictions.csv.enc
-2,organizers,advanced_gnn,Advanced GNN (GraphSAGE),human,0.33,0.4,0.15,0.12,2026-03-08 14:29,organizer_bot,https://github.com/organizer_bot,,submissions/inbox/organizers/advanced_gnn/predictions.csv
+rank,team,run_id,model,model_type,f1_score,accuracy,precision,recall,prediction_hash,submission_date,submitter,submitter_url,pr_number,submission_path
+1,Mubaraq,run_001,GAT Test,human,0.38,0.61,0.0,0.0,18d499c2065bd3822162f6e3819dacad95708f9420e0d7a7ee194924d82f5925,2026-03-08 22:12,Mubarraqqq,https://github.com/Mubarraqqq,,submissions/inbox/Mubaraq/run_001/predictions.csv.enc
+2,Elhouiti_ikram,run_05,My GNN V1,human,0.33,0.4,0.15,0.12,97e988a81ff84a81c41963281dd13bb2649afcffe6063fdcdec84cec92acb8bf,2026-03-08 22:12,El-Ikram,https://github.com/El-Ikram,,submissions/inbox/Elhouiti_ikram/run_05/predictions.csv.enc
+2,organizers,advanced_gnn,Advanced GNN (GraphSAGE),human,0.33,0.4,0.15,0.12,97e988a81ff84a81c41963281dd13bb2649afcffe6063fdcdec84cec92acb8bf,2026-03-08 22:12,organizer_bot,https://github.com/organizer_bot,,submissions/inbox/organizers/advanced_gnn/predictions.csv
+3,samuel,run_01,GCN,human,0.28,0.39,0.39,1.0,32f1814b94bab06178659c007b467a021673634b8269b16a850ff50db113d232,2026-03-08 22:12,samuelmatia,https://github.com/samuelmatia,,submissions/inbox/samuel/run_01/predictions.csv.enc
