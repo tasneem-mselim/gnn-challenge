@@ -9,6 +9,7 @@ and regenerates leaderboard.md + docs/leaderboard.csv for GitHub Pages.
 import os
 import csv
 import json
+import hashlib
 import subprocess
 import tempfile
 from pathlib import Path
@@ -72,6 +73,14 @@ def _sync_organizer_submissions():
 _sync_organizer_submissions()
 
 
+def _file_sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def _discover_submission_files():
     encrypted = list(SUBMISSIONS_DIR.glob("*/*/predictions.csv.enc"))
     plaintext = list(SUBMISSIONS_DIR.glob("*/*/predictions.csv"))
@@ -125,6 +134,7 @@ if not LEADERBOARD_CSV.exists():
             "accuracy",
             "precision",
             "recall",
+            "prediction_hash",
             "submission_date",
             "submitter",
             "submitter_url",
@@ -211,6 +221,7 @@ with tempfile.TemporaryDirectory(prefix="leaderboard_decrypt_") as decrypt_dir:
         submitter_url = f"https://github.com/{submitter}" if submitter else ""
 
         prev = prev_by_key.get(key)
+        prediction_hash = _file_sha256(score_path)
         metrics_unchanged = False
         if prev is not None:
             try:
@@ -223,7 +234,20 @@ with tempfile.TemporaryDirectory(prefix="leaderboard_decrypt_") as decrypt_dir:
             except Exception:
                 metrics_unchanged = False
 
-        submission_date = prev["submission_date"] if (metrics_unchanged and prev is not None) else datetime.now().strftime("%Y-%m-%d %H:%M")
+        prev_hash = ""
+        if prev is not None:
+            prev_hash = str(prev.get("prediction_hash", "")).strip()
+            if prev_hash.lower() == "nan":
+                prev_hash = ""
+        hash_unchanged = bool(prev is not None and prev_hash and prev_hash == prediction_hash)
+
+        # Keep existing timestamp when the actual predictions are unchanged.
+        # For older rows (without prediction_hash), fall back to metric-equality check.
+        submission_date = (
+            prev["submission_date"]
+            if (prev is not None and (hash_unchanged or (not prev_hash and metrics_unchanged)))
+            else datetime.now().strftime("%Y-%m-%d %H:%M")
+        )
 
         new_rows.append({
             "rank": 0,
@@ -235,6 +259,7 @@ with tempfile.TemporaryDirectory(prefix="leaderboard_decrypt_") as decrypt_dir:
             "accuracy": acc,
             "precision": prec,
             "recall": rec,
+            "prediction_hash": prediction_hash,
             "submission_date": submission_date,
             "submitter": submitter,
             "submitter_url": submitter_url,
