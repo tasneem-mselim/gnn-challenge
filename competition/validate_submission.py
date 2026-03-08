@@ -2,7 +2,7 @@
 """
 validate_submission.py
 
-Validate submission format for predictions.csv against test.csv.
+Validate decrypted predictions.csv format against test.csv.
 """
 
 import sys

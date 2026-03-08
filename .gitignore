@@ -9,3 +9,7 @@ testing/
 tvenv
 
 no_commit.py
+
+# Prevent accidental plaintext submission commits.
+predictions.csv
+**/predictions.csv

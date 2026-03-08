@@ -7,10 +7,12 @@
 ### How It Works
 
 1. **Participant** submits a PR with:
-   - `submissions/inbox/<team>/<run_id>/predictions.csv`
+   - `submissions/inbox/<team>/<run_id>/predictions.csv.enc`
    - `submissions/inbox/<team>/<run_id>/metadata.json`
 2. **GitHub Actions** automatically:
-   - Validates the submission format
+   - Rejects plaintext prediction files
+   - Decrypts predictions using organizer private key
+   - Validates the decrypted submission format
    - Scores predictions using hidden test labels
    - Posts results as a PR comment
    - Updates the leaderboard on merge
@@ -23,6 +25,28 @@
 - `update_leaderboard.py` — updates leaderboard CSV + markdown
 - `leaderboard/leaderboard.csv` — source of truth
 - `docs/leaderboard.html` — interactive leaderboard (GitHub Pages)
+
+### Required GitHub Secrets
+
+- `TEST_LABELS_CSV_B64` — base64-encoded hidden test labels (`data/test_labels.csv`)
+- `SUBMISSION_PRIVATE_KEY_ASC` — ASCII-armored private key for decrypting `predictions.csv.enc`
+- `SUBMISSION_PRIVATE_KEY_PASSPHRASE` — optional passphrase for private key (leave empty if key is not passphrase-protected)
+
+### Organizer Key Setup
+
+Generate a dedicated keypair locally (one-time):
+
+```bash
+gpg --full-generate-key
+gpg --armor --export "<KEY_UID_OR_EMAIL>" > .github/keys/submission_public.asc
+gpg --armor --export-secret-keys "<KEY_UID_OR_EMAIL>" > /tmp/submission_private.asc
+```
+
+Then:
+
+1. Commit `.github/keys/submission_public.asc` to the repo.
+2. Add contents of `/tmp/submission_private.asc` as secret `SUBMISSION_PRIVATE_KEY_ASC`.
+3. If key has a passphrase, add it to `SUBMISSION_PRIVATE_KEY_PASSPHRASE`.
 
 ### Workflow Trigger
 
@@ -45,6 +69,12 @@ on:
 3. Recomputes ranks
 4. Regenerates `leaderboard.md`
 5. Copies CSV to `docs/leaderboard.csv`
+
+Encrypted submission notes:
+
+- Participant files are stored encrypted in-repo as `predictions.csv.enc`.
+- Decryption only happens in CI runtime memory/temp storage.
+- Decrypted files are removed during workflow cleanup.
 
 ### Enabling GitHub Pages (Interactive Leaderboard)
 
