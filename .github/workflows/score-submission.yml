@@ -258,7 +258,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## 🏆 Submission Scored\n\n\`\`\`\n${metrics}\n\`\`\`\n\nCheck the [leaderboard](https://github.com/${{ github.repository }}/blob/main/leaderboard.md) for rankings!`
+              body: `## 🏆 Submission Scored\n\n\`\`\`\n${metrics}\n\`\`\`\n\nCheck the [leaderboard](https://mubarraqqq.github.io/gnn-challenge/leaderboard.html) for rankings!`
             });
 
       - name: Cleanup private labels
