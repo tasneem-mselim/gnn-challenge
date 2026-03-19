@@ -1,0 +1,7 @@
+{
+  "team": "AIkram",
+  "run_id": "run_1",
+  "type": "human",
+  "model": "GraphSAGE",
+  "notes": "3-layer GraphSAGE inductive GNN for cfRNA to placenta transfer"
+}
