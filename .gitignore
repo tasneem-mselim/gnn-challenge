@@ -1,6 +1,6 @@
 venv/
 .DS_Store
-
+__pycache__/
 data/test_labels.csv
 personal_test.py
 venv311/

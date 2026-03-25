@@ -8,9 +8,8 @@
 | 2 | sanae | run_001 | GaphSage_3layers | human | 0.44 | 0.61 | 0.50 | 0.07 | 2026-03-14 13:11 | [SanaeZR](https://github.com/SanaeZR) |
 | 3 | Mubaraq | run_001 | GAT Test | human | 0.38 | 0.61 | 0.00 | 0.00 | 2026-03-08 22:12 | [Mubarraqqq](https://github.com/Mubarraqqq) |
 | 4 | Elhouiti_ikram | run_05 | My GNN V1 | human | 0.33 | 0.40 | 0.15 | 0.12 | 2026-03-08 22:12 | [El-Ikram](https://github.com/El-Ikram) |
-| 4 | organizers | advanced_gnn | Advanced GNN (GraphSAGE) | human | 0.33 | 0.40 | 0.15 | 0.12 | 2026-03-08 22:12 | [organizer_bot](https://github.com/organizer_bot) |
 | 5 | Murad | run_01 | GraphSAGE v1 | human | 0.31 | 0.39 | 0.38 | 0.93 | 2026-03-24 18:24 | [Murad-Hossen](https://github.com/Murad-Hossen) |
-| 6 | AIkram | run_1 | AIkram-run_1 | unknown | 0.28 | 0.35 | 0.36 | 0.86 | 2026-03-19 17:14 | [participant](https://github.com/participant) |
+| 6 | AIkram | run_1 | AIkram-run_1 | unknown | 0.28 | 0.35 | 0.36 | 0.86 | 2026-03-19 17:14 | [AiIkram](https://github.com/AiIkram) |
 | 6 | samuel | run_01 | GCN | human | 0.28 | 0.39 | 0.39 | 1.00 | 2026-03-08 22:12 | [samuelmatia](https://github.com/samuelmatia) |
 | 6 | Muhammad_Isah | run_01 | SAGEGNN | human | 0.28 | 0.39 | 0.39 | 1.00 | 2026-03-14 14:01 | [Muhammad0isah](https://github.com/Muhammad0isah) |
 
