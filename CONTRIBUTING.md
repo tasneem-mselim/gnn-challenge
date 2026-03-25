@@ -181,13 +181,4 @@ Then encrypt `predictions.csv` to `predictions.csv.enc` before opening your PR.
 
 - Primary metric: F1 Score
 - Also reported: Accuracy, Precision, Recall
-- Public leaderboard: `https://mubarraqqq.github.io/gnn-challenge/leaderboard.html`
-
-
-## Maintainer Regeneration
-
-To regenerate leaderboard artifacts consistently:
-
-```bash
-python update_leaderboard.py && python competition/render_leaderboard.py
-```
+- [`Public leaderboard`](https://mubarraqqq.github.io/gnn-challenge/leaderboard.html)
